@@ -2,6 +2,8 @@ import os
 from definitions import System, SYSTEM
 import re
 import requests
+from bs4 import BeautifulSoup
+
 UBISOFT_REGISTRY = "SOFTWARE\\Ubisoft"
 STEAM_REGISTRY = "Software\\Valve\\Steam"
 UBISOFT_REGISTRY_LAUNCHER = "SOFTWARE\\Ubisoft\\Launcher"
@@ -13,20 +15,23 @@ if SYSTEM == System.WINDOWS:
 UBISOFT_CONFIGURATIONS_BLACKLISTED_NAMES = ["gamename", "l1", '', 'ubisoft game', 'name']
 
 CHROME_USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
+
+# Fetching the HTML content from the URL
 ids_url = 'https://ubisoftconnect.com/invalid'
 ids_response = requests.get(ids_url)
-regex_ids_response = re.findall('APP_ID.{0,40}|GENOME_ID.{0,40}', ids_response.text) 
 
-ids_result = []
-for sub in regex_ids_response:
-    sub = sub.replace('"','')
-    if ':' in sub:
-        ids_result.append(map(str.strip, sub.split(':', 1)))
+# Parsing the HTML content
+soup = BeautifulSoup(ids_response.content, 'html.parser')
 
-ids_result = dict(ids_result)
+# Extracting the attributes directly from the global-navigation tag
+navigation_tag = soup.find('global-navigation')
 
-CLUB_APPID = ids_result.get('APP_ID','')
-CLUB_GENOME_ID = ids_result.get('GENOME_ID','')
+if navigation_tag:
+    CLUB_APPID = navigation_tag.get("app-id")
+    CLUB_GENOME_ID = navigation_tag.get("genome-id-emea")
+else:
+    CLUB_APPID = ''
+    CLUB_GENOME_ID = ''
 
 AUTH_PARAMS = {
     "window_title": "Login | Ubisoft WebAuth",
